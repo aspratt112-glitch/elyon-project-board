@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elyon Hair Revival — Project Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal: #2DD4BF;
+    --teal-dark: #0F9B8E;
+    --amber: #F59E0B;
+    --purple: #8B5CF6;
+    --coral: #F87171;
+    --bg: #F8F7F4;
+    --surface: #FFFFFF;
+    --border: #E5E3DF;
+    --text: #1C1B18;
+    --text-muted: #6B6860;
+    --col-todo: #F0EFEC;
+    --col-inprog: #EFF9F8;
+    --col-blocked: #FEF9EC;
+    --col-done: #F0FDF4;
+    --radius: 10px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #0F2A27 0%, #1A3D38 60%, #0F2A27 100%);
+    padding: 28px 36px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  }
+
+  .header-left { display: flex; align-items: center; gap: 16px; }
+
+  .logo-mark {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700; color: #fff;
+    letter-spacing: -1px;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  header h1 span {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  /* Progress ring */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .ring-container {
+    position: relative;
+    width: 56px; height: 56px;
+  }
+
+  .ring-container svg { transform: rotate(-90deg); }
+
+  .ring-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 4; }
+  .ring-fill {
+    fill: none;
+    stroke: var(--teal);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1);
+  }
+
+  .ring-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring-label .num {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .ring-label .den {
+    font-size: 9px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 1px;
+  }
+
+  .progress-text {
+    color: rgba(255,255,255,0.8);
+    font-size: 13px;
+  }
+
+  .progress-text strong { color: #fff; display: block; font-size: 15px; }
+
+  /* ── Main layout ── */
+  .board-wrap {
+    padding: 28px 24px;
+    overflow-x: auto;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, 300px);
+    gap: 16px;
+    min-width: max-content;
+  }
+
+  /* ── Column ── */
+  .col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 140px);
+    overflow: hidden;
+  }
+
+  .col-header {
+    padding: 14px 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: inherit;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .col-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .col-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .col[data-col="todo"] .col-dot { background: #94A3B8; }
+  .col[data-col="inprog"] .col-dot { background: var(--teal); }
+  .col[data-col="blocked"] .col-dot { background: var(--amber); }
+  .col[data-col="done"] .col-dot { background: #22C55E; }
+
+  .col-count {
+    background: var(--bg);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 20px;
+    padding: 2px 7px;
+  }
+
+  .cards {
+    padding: 12px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Drop target highlight */
+  .cards.drag-over { background: rgba(45,212,191,0.05); border-radius: 6px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: grab;
+    transition: box-shadow 0.15s, transform 0.15s, opacity 0.15s;
+    position: relative;
+  }
+
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: 0.4; transform: scale(0.97); }
+  .card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-color: #D1CEC8; }
+
+  .card[data-col="done"] {
+    border-color: #BBF7D0;
+    background: #F0FDF4;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card-title {
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.45;
+    flex: 1;
+  }
+
+  .card[data-col="done"] .card-title {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .card-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+  }
+
+  .card:hover .card-menu-btn { opacity: 1; }
+  .card-menu-btn:hover { background: var(--bg); color: var(--text); }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+  }
+
+  .tag {
+    font-size: 10.5px;
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 2px 7px;
+  }
+
+  .tag-green { background: #D1FAE5; color: #065F46; }
+  .tag-blue  { background: #DBEAFE; color: #1E40AF; }
+  .tag-amber { background: #FEF3C7; color: #92400E; }
+  .tag-purple { background: #EDE9FE; color: #5B21B6; }
+  .tag-red   { background: #FEE2E2; color: #991B1B; }
+  .tag-gray  { background: #F1F0EE; color: #4B4A47; }
+
+  .card-actions {
+    margin-top: 11px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+  }
+
+  .btn-done {
+    flex: 1;
+    background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.1s;
+  }
+
+  .btn-done:hover { filter: brightness(1.07); }
+  .btn-done:active { transform: scale(0.97); }
+
+  .card[data-col="done"] .btn-done {
+    background: #D1FAE5;
+    color: #065F46;
+    cursor: default;
+  }
+
+  .card[data-col="done"] .btn-done:hover { filter: none; }
+
+  /* Add card row */
+  .add-card-row {
+    padding: 8px 12px 12px;
+  }
+
+  .add-card-input {
+    width: 100%;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    resize: none;
+  }
+
+  .add-card-input:focus {
+    border-color: var(--teal);
+    background: #fff;
+  }
+
+  .add-card-input::placeholder { color: #B0AEA9; }
+
+  /* ── Context menu ── */
+  .ctx-menu {
+    position: fixed;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    padding: 6px;
+    z-index: 9999;
+    min-width: 160px;
+    display: none;
+  }
+
+  .ctx-menu.visible { display: block; }
+
+  .ctx-item {
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 5px;
+    color: var(--text);
+    transition: background 0.1s;
+  }
+
+  .ctx-item:hover { background: var(--bg); }
+  .ctx-item.danger { color: #DC2626; }
+
+  .ctx-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  /* ── Actions section ── */
+  .actions-section {
+    padding: 8px 24px 40px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  .action-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+
+  .action-card h3 {
+    font-size: 13.5px;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+
+  .action-card p {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .action-prereq {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--teal-dark);
+    font-weight: 500;
+  }
+
+  /* ── Toast ── */
+  #toast-container {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: #1C1B18;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 500;
+    animation: toastIn 0.35s cubic-bezier(.34,1.56,.64,1) forwards;
+    opacity: 0;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.92); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(-8px) scale(0.92); }
+  }
+
+  /* ── Confetti canvas ── */
+  #confetti-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 8000;
+  }
+
+  /* ── Edit modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.visible { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    width: 360px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.16);
+  }
+
+  .modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+
+  .modal input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 11px;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .modal input:focus { border-color: var(--teal); }
+
+  .modal-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    justify-content: flex-end;
+  }
+
+  .modal-btns button {
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .btn-cancel { background: var(--bg); color: var(--text); }
+  .btn-save   { background: var(--teal-dark); color: #fff; }
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+<div id="toast-container"></div>
+
+<!-- Context menu -->
+<div class="ctx-menu" id="ctx-menu">
+  <div class="ctx-item" id="ctx-edit">✏️ Edit title</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" id="ctx-todo">Move to To Do</div>
+  <div class="ctx-item" id="ctx-inprog">Move to In Progress</div>
+  <div class="ctx-item" id="ctx-blocked">Move to Blocked</div>
+  <div class="ctx-item" id="ctx-done">Move to Done</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" id="ctx-delete">🗑 Delete card</div>
+</div>
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>Edit card title</h2>
+    <input type="text" id="modal-input" />
+    <div class="modal-btns">
+      <button class="btn-cancel" id="modal-cancel">Cancel</button>
+      <button class="btn-save" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="header-left">
+    <div class="logo-mark">E</div>
+    <h1>Elyon Hair Revival <span>Project Board</span></h1>
+  </div>
+  <div class="progress-wrap">
+    <div class="ring-container">
+      <svg viewBox="0 0 56 56" width="56" height="56">
+        <circle class="ring-bg" cx="28" cy="28" r="22"/>
+        <circle class="ring-fill" id="ring-fill" cx="28" cy="28" r="22"
+          stroke-dasharray="138.2"
+          stroke-dashoffset="138.2"/>
+      </svg>
+      <div class="ring-label">
+        <span class="num" id="ring-num">0</span>
+        <span class="den" id="ring-den">/ 0</span>
+      </div>
+    </div>
+    <div class="progress-text">
+      <strong id="progress-pct">0%</strong>
+      tasks complete
+    </div>
+  </div>
+</header>
+
+<!-- Board -->
+<div class="board-wrap">
+  <div class="board" id="board">
+
+    <div class="col" data-col="todo">
+      <div class="col-header">
+        <div class="col-title"><div class="col-dot"></div>To Do</div>
+        <div class="col-count" id="count-todo">0</div>
+      </div>
+      <div class="cards" id="cards-todo" ondragover="onDragOver(event)" ondrop="onDrop(event,'todo')" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)"></div>
+      <div class="add-card-row">
+        <textarea class="add-card-input" rows="1" placeholder="+ Add item…" onkeydown="onAddKey(event,'todo')"></textarea>
+      </div>
+    </div>
+
+    <div class="col" data-col="inprog">
+      <div class="col-header">
+        <div class="col-title"><div class="col-dot"></div>In Progress</div>
+        <div class="col-count" id="count-inprog">0</div>
+      </div>
+      <div class="cards" id="cards-inprog" ondragover="onDragOver(event)" ondrop="onDrop(event,'inprog')" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)"></div>
+      <div class="add-card-row">
+        <textarea class="add-card-input" rows="1" placeholder="+ Add item…" onkeydown="onAddKey(event,'inprog')"></textarea>
+      </div>
+    </div>
+
+    <div class="col" data-col="blocked">
+      <div class="col-header">
+        <div class="col-title"><div class="col-dot"></div>Blocked</div>
+        <div class="col-count" id="count-blocked">0</div>
+      </div>
+      <div class="cards" id="cards-blocked" ondragover="onDragOver(event)" ondrop="onDrop(event,'blocked')" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)"></div>
+      <div class="add-card-row">
+        <textarea class="add-card-input" rows="1" placeholder="+ Add item…" onkeydown="onAddKey(event,'blocked')"></textarea>
+      </div>
+    </div>
+
+    <div class="col" data-col="done">
+      <div class="col-header">
+        <div class="col-title"><div class="col-dot"></div>Done</div>
+        <div class="col-count" id="count-done">0</div>
+      </div>
+      <div class="cards" id="cards-done" ondragover="onDragOver(event)" ondrop="onDrop(event,'done')" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)"></div>
+      <div class="add-card-row">
+        <textarea class="add-card-input" rows="1" placeholder="+ Add item…" onkeydown="onAddKey(event,'done')"></textarea>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Follow-on actions -->
+<div class="actions-section">
+  <div class="section-label">Follow-on actions once tasks complete</div>
+  <div class="actions-grid">
+    <div class="action-card">
+      <h3>🚀 Soft-launch Elyon to waitlist</h3>
+      <p>Send the first email to your sign-up list announcing the brand and inviting early feedback.</p>
+      <div class="action-prereq">Requires: Email set-up, LP live, sign-up workflow ready</div>
+    </div>
+    <div class="action-card">
+      <h3>📣 Activate social channels</h3>
+      <p>Start posting on Facebook and TikTok with the Fayth-approved strategy — before-and-after content, founder story, product teasers.</p>
+      <div class="action-prereq">Requires: Facebook & TikTok pages live, strategy finalised</div>
+    </div>
+    <div class="action-card">
+      <h3>📦 Place first production order</h3>
+      <p>Sign off on bottle type and formulation, then submit the production order to Labwork.</p>
+      <div class="action-prereq">Requires: Bottle samples approved, Labwork paid, samples discussed</div>
+    </div>
+    <div class="action-card">
+      <h3>💼 Set up business structure</h3>
+      <p>Finalise entity type, ABN, accounts, and any IP registration with your accountant at Envision.</p>
+      <div class="action-prereq">Requires: Accountant meeting held</div>
+    </div>
+    <div class="action-card">
+      <h3>📅 Book strategy check-in with Fayth</h3>
+      <p>Review early traction data and adjust the content and launch plan based on what's working.</p>
+      <div class="action-prereq">Requires: Strategy session done, social channels active</div>
+    </div>
+    <div class="action-card">
+      <h3>🗓 Set a public launch date</h3>
+      <p>Once all foundations are in place, commit to a go-live date and work backwards from it.</p>
+      <div class="action-prereq">Requires: All checklist items complete</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const DEFAULT_CARDS = [
+  { id: 'c1',  title: 'Pay Labwork',                                col: 'todo', tags: ['tag-green'] },
+  { id: 'c2',  title: 'Set up Elyon LP and forward Hair Revival domain', col: 'todo', tags: ['tag-blue'] },
+  { id: 'c3',  title: 'Fayth quote — discuss with Laura',           col: 'todo', tags: ['tag-amber'] },
+  { id: 'c4',  title: 'Arrange strategy session with Fayth',        col: 'todo', tags: ['tag-purple'] },
+  { id: 'c5',  title: 'Set up Elyon email and forward Hair Revival emails', col: 'todo', tags: ['tag-blue'] },
+  { id: 'c6',  title: 'Set up meeting with Business Accountant (Envision)', col: 'todo', tags: ['tag-gray'] },
+  { id: 'c7',  title: 'Discuss samples with Labwork',               col: 'todo', tags: ['tag-green'] },
+  { id: 'c8',  title: 'Get bottle samples, finalise bottle type',    col: 'todo', tags: ['tag-green'] },
+  { id: 'c9',  title: 'Start thinking about sign-up workflow — emails, updates, testing', col: 'todo', tags: ['tag-blue'] },
+  { id: 'c10', title: 'Set up Facebook Page',                       col: 'todo', tags: ['tag-purple'] },
+  { id: 'c11', title: 'Set up TikTok Page',                         col: 'todo', tags: ['tag-purple'] },
+];
+
+let cards = [];
+let dragId = null;
+let ctxCardId = null;
+let idCounter = 100;
+
+const STORAGE_KEY = 'elyon_board_v1';
+
+function load() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) { cards = JSON.parse(saved); return; }
+  } catch(e) {}
+  cards = DEFAULT_CARDS.map(c => ({...c}));
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  ['todo','inprog','blocked','done'].forEach(col => {
+    const el = document.getElementById('cards-' + col);
+    el.innerHTML = '';
+    cards.filter(c => c.col === col).forEach(c => {
+      el.appendChild(makeCard(c));
+    });
+    document.getElementById('count-' + col).textContent = cards.filter(c => c.col === col).length;
+  });
+  updateProgress();
+  save();
+}
+
+function makeCard(c) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.dataset.id = c.id;
+  div.dataset.col = c.col;
+  div.draggable = true;
+
+  const tagsHtml = (c.tags || []).map(t => {
+    const labels = {
+      'tag-green':'#Labwork','tag-blue':'#Digital','tag-amber':'#Strategy',
+      'tag-purple':'#Social','tag-red':'#Urgent','tag-gray':'#Finance'
+    };
+    return `<span class="tag ${t}">${labels[t] || t}</span>`;
+  }).join('');
+
+  const isDone = c.col === 'done';
+
+  div.innerHTML = `
+    <div class="card-top">
+      <div class="card-title">${escHtml(c.title)}</div>
+      <button class="card-menu-btn" title="Options">···</button>
+    </div>
+    ${tagsHtml ? `<div class="card-tags">${tagsHtml}</div>` : ''}
+    <div class="card-actions">
+      <button class="btn-done" ${isDone ? 'disabled' : ''}>
+        ${isDone ? '✓ Done' : 'Mark done ✓'}
+      </button>
+    </div>
+  `;
+
+  div.addEventListener('dragstart', e => {
+    dragId = c.id;
+    div.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  div.addEventListener('dragend', () => {
+    div.classList.remove('dragging');
+    dragId = null;
+  });
+
+  div.querySelector('.btn-done').addEventListener('click', () => {
+    if (c.col !== 'done') markDone(c.id);
+  });
+
+  div.querySelector('.card-menu-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    showCtx(e, c.id);
+  });
+
+  return div;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Progress ──────────────────────────────────────────────────────────────────
+function updateProgress() {
+  const total = cards.length;
+  const done  = cards.filter(c => c.col === 'done').length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+  const circ  = 2 * Math.PI * 22; // r=22
+
+  document.getElementById('ring-fill').style.strokeDashoffset = circ - (circ * pct / 100);
+  document.getElementById('ring-num').textContent = done;
+  document.getElementById('ring-den').textContent = '/ ' + total;
+  document.getElementById('progress-pct').textContent = pct + '%';
+}
+
+// ── Mark done ─────────────────────────────────────────────────────────────────
+const TOASTS = [
+  '🎉 Done! One step closer to launch.',
+  '🌿 Elyon is happening.',
+  '✨ Nailed it. Keep going!',
+  '🚀 Another one down!',
+  '💚 Progress feels good.',
+  '🌟 You\'re building something great.',
+  '🙌 That\'s how it\'s done.',
+];
+
+function markDone(id) {
+  const card = cards.find(c => c.id === id);
+  if (!card || card.col === 'done') return;
+  card.col = 'done';
+  render();
+  launchConfetti();
+  showToast(TOASTS[Math.floor(Math.random() * TOASTS.length)]);
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+function onDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function onDragEnter(e) { e.currentTarget.classList.add('drag-over'); }
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+function onDrop(e, col) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragId) return;
+  const card = cards.find(c => c.id === dragId);
+  if (!card) return;
+  const wasDone = card.col === 'done';
+  card.col = col;
+  render();
+  if (!wasDone && col === 'done') {
+    launchConfetti();
+    showToast(TOASTS[Math.floor(Math.random() * TOASTS.length)]);
+  }
+}
+
+// ── Add card ──────────────────────────────────────────────────────────────────
+function onAddKey(e, col) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    const val = e.target.value.trim();
+    if (!val) return;
+    cards.push({ id: 'c' + (++idCounter), title: val, col, tags: [] });
+    e.target.value = '';
+    render();
+  }
+}
+
+// ── Context menu ──────────────────────────────────────────────────────────────
+function showCtx(e, id) {
+  ctxCardId = id;
+  const menu = document.getElementById('ctx-menu');
+  menu.style.left = e.clientX + 'px';
+  menu.style.top  = e.clientY + 'px';
+  menu.classList.add('visible');
+}
+
+function hideCtx() { document.getElementById('ctx-menu').classList.remove('visible'); ctxCardId = null; }
+
+document.addEventListener('click', hideCtx);
+
+['todo','inprog','blocked','done'].forEach(col => {
+  document.getElementById('ctx-' + col).addEventListener('click', () => {
+    if (!ctxCardId) return;
+    const card = cards.find(c => c.id === ctxCardId);
+    if (!card) return;
+    const wasDone = card.col === 'done';
+    card.col = col;
+    render();
+    if (!wasDone && col === 'done') {
+      launchConfetti();
+      showToast(TOASTS[Math.floor(Math.random() * TOASTS.length)]);
+    }
+    hideCtx();
+  });
+});
+
+document.getElementById('ctx-delete').addEventListener('click', () => {
+  if (!ctxCardId) return;
+  cards = cards.filter(c => c.id !== ctxCardId);
+  render();
+  hideCtx();
+});
+
+document.getElementById('ctx-edit').addEventListener('click', () => {
+  if (!ctxCardId) return;
+  const card = cards.find(c => c.id === ctxCardId);
+  if (!card) return;
+  const input = document.getElementById('modal-input');
+  input.value = card.title;
+  document.getElementById('modal').classList.add('visible');
+  setTimeout(() => input.focus(), 50);
+  hideCtx();
+});
+
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('modal').classList.remove('visible');
+});
+
+document.getElementById('modal-save').addEventListener('click', () => {
+  const card = cards.find(c => c.id === ctxCardId);
+  const val = document.getElementById('modal-input').value.trim();
+  if (card && val) { card.title = val; render(); }
+  document.getElementById('modal').classList.remove('visible');
+});
+
+document.getElementById('modal-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('modal-save').click();
+  if (e.key === 'Escape') document.getElementById('modal-cancel').click();
+});
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'toastOut 0.3s ease forwards';
+    t.addEventListener('animationend', () => t.remove());
+  }, 2800);
+}
+
+// ── Confetti ──────────────────────────────────────────────────────────────────
+const CONFETTI_COLORS = ['#2DD4BF','#0F9B8E','#F59E0B','#8B5CF6','#F87171','#60A5FA','#34D399','#FBBF24'];
+
+function launchConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx    = canvas.getContext('2d');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const pieces = Array.from({ length: 140 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -10 - Math.random() * 120,
+    size: 6 + Math.random() * 8,
+    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+    speed: 2.5 + Math.random() * 3.5,
+    drift: (Math.random() - 0.5) * 2.5,
+    rot: Math.random() * 360,
+    rotSpeed: (Math.random() - 0.5) * 8,
+    shape: Math.random() < 0.4 ? 'circle' : Math.random() < 0.6 ? 'rect' : 'ribbon',
+    opacity: 1,
+  }));
+
+  let frame;
+  let elapsed = 0;
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    elapsed++;
+    let alive = 0;
+
+    pieces.forEach(p => {
+      p.y += p.speed;
+      p.x += p.drift;
+      p.rot += p.rotSpeed;
+      if (elapsed > 80) p.opacity = Math.max(0, p.opacity - 0.012);
+
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+
+      if (p.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.shape === 'rect') {
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      } else {
+        // ribbon
+        ctx.beginPath();
+        ctx.moveTo(-p.size / 2, 0);
+        ctx.quadraticCurveTo(0, -p.size / 3, p.size / 2, 0);
+        ctx.quadraticCurveTo(0, p.size / 3, -p.size / 2, 0);
+        ctx.fill();
+      }
+
+      ctx.restore();
+
+      if (p.opacity > 0 && p.y < canvas.height + 20) alive++;
+    });
+
+    if (alive > 0) {
+      frame = requestAnimationFrame(draw);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  if (frame) cancelAnimationFrame(frame);
+  draw();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+load();
+render();
+</script>
+</body>
+</html>
