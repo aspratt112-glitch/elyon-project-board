@@ -478,8 +478,8 @@ const DEFAULT_CARDS = [
 const STORAGE_CARDS  = 'elyon_cards_v2';
 const STORAGE_LABELS = 'elyon_labels_v2';
 
-const BIN_ID  = '69fbfd0eadc21f119a64df93';
-const API_KEY = '$2a$10$d58Dj4rp0u0QC/fSKiQ0/uWHBUgExghDUVRukaJ9Lz/0C7mKycNYO';
+const BIN_ID  = '69fc016a250b1311c3153e43';
+const API_KEY = '$2a$10$3Y.jkE2XY4whVy//EOTnt.1a8HWM9FkyOGt9kCmPcoAmRgjasn06K';
 const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
 
 let cards   = [];
@@ -509,23 +509,26 @@ function setSyncStatus(status) {
 // ── Persist ───────────────────────────────────────────────────────────────────
 async function loadData() {
   setSyncStatus('loading');
-  // Try JSONBin first
   try {
     const res = await fetch(BIN_URL + '/latest', {
       headers: { 'X-Master-Key': API_KEY }
     });
+    const json = await res.json();
+    console.log('[JSONBin load]', res.status, json);
     if (res.ok) {
-      const json = await res.json();
       const data = json.record || {};
       cards = (data.cards && data.cards.length) ? data.cards : DEFAULT_CARDS.map(x => ({...x}));
       customLabels = data.labels || [];
-      // mirror to localStorage as cache
       localStorage.setItem(STORAGE_CARDS,  JSON.stringify(cards));
       localStorage.setItem(STORAGE_LABELS, JSON.stringify(customLabels));
       setSyncStatus('saved');
       return;
+    } else {
+      console.error('[JSONBin load error]', res.status, json);
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error('[JSONBin load exception]', e);
+  }
 
   // Fallback to localStorage cache
   try {
