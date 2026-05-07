@@ -329,6 +329,7 @@
       tasks complete
     </div>
   </div>
+  <div id="sync-status" style="font-size:11px;font-weight:500;color:rgba(255,255,255,0.5);white-space:nowrap;">⏳ Loading…</div>
 </header>
 
 <!-- Filter bar -->
@@ -477,35 +478,89 @@ const DEFAULT_CARDS = [
 const STORAGE_CARDS  = 'elyon_cards_v2';
 const STORAGE_LABELS = 'elyon_labels_v2';
 
+const BIN_ID  = '69fbfd0eadc21f119a64df93';
+const API_KEY = '$2a$10$d58Dj4rp0u0QC/fSKiQ0/uWHBUgExghDUVRukaJ9Lz/0C7mKycNYO';
+const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+
 let cards   = [];
-let customLabels = [];   // [{id, name, emoji:'', paletteId}]
+let customLabels = [];
 let idCounter = 200;
 let labelCounter = 0;
 
 function allLabels() { return [...BUILTIN_LABELS, ...customLabels]; }
-
 function labelById(id) { return allLabels().find(l => l.id === id); }
-
 function paletteById(id) { return PALETTE.find(p => p.id === id) || PALETTE[0]; }
 
+// ── Sync indicator ────────────────────────────────────────────────────────────
+function setSyncStatus(status) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const states = {
+    syncing: { text: '⏳ Saving…',  color: '#92400E' },
+    saved:   { text: '✓ Saved',     color: '#065F46' },
+    offline: { text: '⚠ Offline — saved locally', color: '#991B1B' },
+    loading: { text: '⏳ Loading…', color: '#1E40AF' },
+  };
+  const s = states[status] || {};
+  el.textContent = s.text || '';
+  el.style.color = s.color || '';
+}
+
 // ── Persist ───────────────────────────────────────────────────────────────────
-function loadData() {
+async function loadData() {
+  setSyncStatus('loading');
+  // Try JSONBin first
+  try {
+    const res = await fetch(BIN_URL + '/latest', {
+      headers: { 'X-Master-Key': API_KEY }
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const data = json.record || {};
+      cards = (data.cards && data.cards.length) ? data.cards : DEFAULT_CARDS.map(x => ({...x}));
+      customLabels = data.labels || [];
+      // mirror to localStorage as cache
+      localStorage.setItem(STORAGE_CARDS,  JSON.stringify(cards));
+      localStorage.setItem(STORAGE_LABELS, JSON.stringify(customLabels));
+      setSyncStatus('saved');
+      return;
+    }
+  } catch(e) {}
+
+  // Fallback to localStorage cache
   try {
     const c = localStorage.getItem(STORAGE_CARDS);
-    if (c) cards = JSON.parse(c);
-    else    cards = DEFAULT_CARDS.map(x => ({...x}));
-
+    cards = c ? JSON.parse(c) : DEFAULT_CARDS.map(x => ({...x}));
     const l = localStorage.getItem(STORAGE_LABELS);
-    if (l) customLabels = JSON.parse(l);
+    customLabels = l ? JSON.parse(l) : [];
   } catch(e) {
     cards = DEFAULT_CARDS.map(x => ({...x}));
     customLabels = [];
   }
+  setSyncStatus('offline');
 }
 
+let saveTimer;
 function saveData() {
+  // Write to localStorage immediately
   localStorage.setItem(STORAGE_CARDS,  JSON.stringify(cards));
   localStorage.setItem(STORAGE_LABELS, JSON.stringify(customLabels));
+
+  // Debounce JSONBin writes (1 s) to avoid hammering the API
+  clearTimeout(saveTimer);
+  setSyncStatus('syncing');
+  saveTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(BIN_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+        body: JSON.stringify({ cards, labels: customLabels }),
+      });
+      setSyncStatus(res.ok ? 'saved' : 'offline');
+    } catch(e) {
+      setSyncStatus('offline');
+    }
+  }, 1000);
 }
 
 // ── Filter state ──────────────────────────────────────────────────────────────
@@ -917,9 +972,11 @@ function launchConfetti() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-loadData();
-renderFilterBar();
-render();
+(async () => {
+  await loadData();
+  renderFilterBar();
+  render();
+})();
 </script>
 </body>
 </html>
